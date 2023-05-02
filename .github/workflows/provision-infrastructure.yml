@@ -1,0 +1,46 @@
+name: Provision infrastructure
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'The environment to deploy to'
+        default: staging
+        required: false
+        type: string
+
+env:
+  PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+  PULUMI_BACKEND: s3://bn-digital/pulumi/${{ github.repository }}?endpoint=fra1.digitaloceanspaces.com
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  pulumi:
+    name: Pulumi
+    runs-on: self-hosted
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Installing dependencies
+        run: yarn workspace @${{ github.event.repository.name }}/cloud install
+        working-directory: ${{ inputs.workspace }}
+
+      - name: Preview infrastructure plan
+        uses: pulumi/actions@v4
+        id: preview
+        with:
+          cloud-url: ${{ env.PULUMI_BACKEND }}
+          work-dir: packages/cloud
+          stack-name: ${{ inputs.environment }}
+
+      - name: Applying changes 🚀
+        uses: pulumi/actions@v4
+        with:
+          command: up
+          stack-name: ${{ github.repository }}/${{ inputs.environment }}
+

@@ -1,0 +1,35 @@
+{
+  "name": "@bn-digital/pulumi",
+  "description": "Pulumi IaC modules used by BN Digital for cloud infrastructure provisioning",
+  "version": "1.1.0",
+  "prettier": "@bn-digital/prettier-config",
+  "main": "lib/index.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "lib",
+    "types"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "tsc",
+    "publish": "yarn build && yarn npm publish"
+  },
+  "dependencies": {
+    "@pulumi/aws": "^5.39.0",
+    "@pulumi/digitalocean": "^4.19.1",
+    "@pulumi/github": "^5.8.0",
+    "@pulumi/postgresql": "^3.8.0",
+    "@pulumi/pulumi": "^3.65.1",
+    "@pulumi/tls": "^4.10.0",
+    "@pulumi/vault": "^5.11.0",
+    "@pulumiverse/harbor": "^3.8.4"
+  },
+  "devDependencies": {
+    "@bn-digital/cosmiconfig": "^1.0.6",
+    "typescript": "^5.0.4"
+  },
+  "packageManager": "yarn@3.5.0"
+}

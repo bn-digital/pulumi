@@ -21,7 +21,6 @@ concurrency:
 
 jobs:
   pulumi:
-    name: Pulumi
     runs-on: self-hosted
     environment: ${{ inputs.environment }}
     steps:

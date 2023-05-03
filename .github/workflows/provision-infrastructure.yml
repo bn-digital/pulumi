@@ -11,7 +11,9 @@ on:
 
 env:
   PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-  PULUMI_BACKEND: s3://bn-digital/pulumi/${{ github.repository }}?endpoint=fra1.digitaloceanspaces.com
+  PULUMI_BACKEND_URL: s3://bn-digital/pulumi/${{ github.repository }}?endpoint=fra1.digitaloceanspaces.com
+  AWS_ACCESS_KEY_ID: ${{ secrets.SPACES_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -27,20 +29,11 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Installing dependencies
-        run: yarn workspace @${{ github.event.repository.name }}/cloud install
-        working-directory: ${{ inputs.workspace }}
+        run: yarn workspaces focus @${{ github.event.repository.name }}/cloud
 
       - name: Preview infrastructure plan
         uses: pulumi/actions@v4
-        id: preview
         with:
-          cloud-url: ${{ env.PULUMI_BACKEND }}
+          command: preview
           work-dir: packages/cloud
           stack-name: ${{ inputs.environment }}
-
-      - name: Applying changes 🚀
-        uses: pulumi/actions@v4
-        with:
-          command: up
-          stack-name: ${{ github.repository }}/${{ inputs.environment }}
-

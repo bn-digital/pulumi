@@ -4,15 +4,16 @@ import * as path from "path"
 import { crudPolicy } from "./s3"
 import { generateSshKey } from "./ssh"
 
-const { name, requireObject } = new Config()
+const config = new Config()
+const name = config.name
 const environment = getStack()
 const tags: { [key: string]: string } = [
   ["Name", name],
   ["Environment", environment],
   ["Provisioner", "pulumi"],
 ]
-  .concat(Object.entries(requireObject<string>("cloud:tags")))
-  .reduce((acc, [key, value]) => ({ ...acc, [key]: value }),{})
+  .concat(Object.entries(config.getObject<string>("tags") ?? {}))
+  .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
 
 async function getUbuntuLatestAmi(): Promise<ec2.GetAmiResult> {
   return await ec2.getAmi({

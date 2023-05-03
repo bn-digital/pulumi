@@ -1,9 +1,7 @@
-import { Database } from "@pulumi/postgresql"
-import { Config } from "@pulumi/pulumi"
-const { name } = new Config()
+import { Database, DatabaseArgs } from "@pulumi/postgresql"
 
-function createDatabase() {
-  return new Database(name, {
+function createDatabase({ name }: Pick<DatabaseArgs, "name">) {
+  return new Database("database", {
     name,
   })
 }

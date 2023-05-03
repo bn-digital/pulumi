@@ -1,16 +1,13 @@
-import { Config } from "@pulumi/pulumi"
-import { getRegistryOutput, Project } from "@pulumiverse/harbor"
+import { Project, ProjectArgs, getRegistryOutput } from "@pulumiverse/harbor"
 
-const { name } = new Config()
-
-function createHarborProject() {
+function createProject({ name }: Pick<ProjectArgs, "name">) {
   const registry = getRegistryOutput({ name: "internal" })
-  return new Project(name, {
-    name,
+  return new Project("container-registry", {
     registryId: registry.registryId,
     public: "false",
     vulnerabilityScanning: true,
+    name,
   })
 }
 
-export { createHarborProject }
+export { createProject }

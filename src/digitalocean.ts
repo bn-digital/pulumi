@@ -1,29 +1,29 @@
 import {
   Domain,
+  DomainArgs,
   DropletSlug,
   KubernetesCluster,
+  KubernetesClusterArgs,
   Project,
+  ProjectArgs,
   SpacesBucket,
   SpacesBucketPolicy,
   SpacesBucketPolicyArgs,
   getKubernetesVersionsOutput,
-  type KubernetesClusterArgs,
   type SpacesBucketArgs,
 } from "@pulumi/digitalocean"
-import { Config, Output, getStack } from "@pulumi/pulumi"
 import { crudPolicy } from "./s3"
 
-const config = new Config()
-const name = config.name
-const region = config.require("cloud:region")
-const tags = [`environment:${getStack()}`]
-  .concat(...Object.entries(config.getObject("cloud:tags") ?? {}).map(([key, value]) => [key, value].join(":")))
-  .filter((it, i, self) => self.indexOf(it) === i)
+export interface ProductionConfig {
+  domain: string
+  region: string
+}
 
-function createBucketPolicy(policy: string): SpacesBucketPolicy {
+const DEFAULT_REGION = "nyc3" as const
+function createBucketPolicy({ policy, region = DEFAULT_REGION, ...args }: SpacesBucketPolicyArgs): SpacesBucketPolicy {
   return new SpacesBucketPolicy(
-    [name, "cms", "crud"].join("-"),
-    { policy, region, bucket: `cms` },
+    [args.bucket, "crud"].join("-"),
+    { policy, region, ...args },
     { ignoreChanges: ["region"] as (keyof SpacesBucketPolicyArgs)[] }
   )
 }
@@ -31,58 +31,68 @@ function createBucketPolicy(policy: string): SpacesBucketPolicy {
 /**
  * Create a DigitalOcean Spaces bucket required for CMS uploads and assets
  */
-function createBucket(): SpacesBucket {
+function createBucket({ name, region = DEFAULT_REGION }: Pick<SpacesBucketArgs, "name" | "region">): SpacesBucket {
   const bucket = new SpacesBucket(
-    [name, "cms"].join("-"),
+    "storage",
     {
       acl: "public-read",
       name: `${name}-cms`,
       versioning: { enabled: false },
       forceDestroy: true,
+      region,
     },
     { ignoreChanges: ["region"] as (keyof SpacesBucketArgs)[] }
   )
-  bucket.name.apply(crudPolicy).apply(JSON.stringify).apply(createBucketPolicy)
+  bucket.name.apply(name => {
+    createBucketPolicy({
+      policy: JSON.stringify(crudPolicy(name)),
+      bucket: name,
+      region,
+    })
+  })
 
   return bucket
 }
 
-function createDomain(name: string): Domain {
-  return new Domain("domain", {
+function createDomain({ name }: Pick<DomainArgs, "name">): Domain {
+  return new Domain("dns", {
     name,
   })
 }
 
-function createCluster(): KubernetesCluster {
+function createCluster({
+  name,
+  region = DEFAULT_REGION,
+}: Pick<KubernetesClusterArgs, "name"> & Partial<Pick<KubernetesClusterArgs, "region">>): KubernetesCluster {
   return new KubernetesCluster(
-    name,
+    "cluster",
     {
       ha: false,
       surgeUpgrade: true,
       autoUpgrade: false,
-      name,
       nodePool: {
-        name: "default",
+        name: "projects",
         size: DropletSlug.DropletS2VCPU4GB_INTEL,
         minNodes: 1,
         maxNodes: 2,
         autoScale: true,
       },
-      region,
       version: getKubernetesVersionsOutput().latestVersion,
-      tags,
+      name,
+      region,
     },
-    { ignoreChanges: ["name", "version", "region"] as (keyof KubernetesClusterArgs)[] }
+    { retainOnDelete: true, ignoreChanges: ["version", "region"] }
   )
 }
 
-function createProject(resources: Output<string>[]): Project {
-  return new Project(name, {
+function createProject({ name, resources, ...args }: Pick<ProjectArgs, "name" | "environment" | "resources">): Project {
+  return new Project("project", {
     environment: "Production",
     name,
     isDefault: false,
     purpose: "Web Application",
     resources,
+    ...args,
   })
 }
 

@@ -101,9 +101,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/eslint-parser@npm:^7.21.3":
-  version: 7.21.3
-  resolution: "@babel/eslint-parser@npm:7.21.3"
+"@babel/eslint-parser@npm:^7.21.8":
+  version: 7.21.8
+  resolution: "@babel/eslint-parser@npm:7.21.8"
   dependencies:
     "@nicolo-ribaudo/eslint-scope-5-internals": 5.1.1-v1
     eslint-visitor-keys: ^2.1.0
@@ -111,7 +111,7 @@ __metadata:
   peerDependencies:
     "@babel/core": ">=7.11.0"
     eslint: ^7.5.0 || ^8.0.0
-  checksum: cc44a26a518c62ca93cdbee4ec4fa195c5a69b4f85d696c9df572b1ada99446ebdf3caef58a124f401a798279a765f858c88292bc7a8fc0485c34e178b1a9e82
+  checksum: 6d870f53808682b9d7e3c2a69a832b2095963103bb2d686daee3fcf1df49a0b3dfe58e95c773cab8cf59f2657ec432dfd5e47b9f1835c264eb84d2ec5ab2ad35
   languageName: node
   linkType: hard
 
@@ -747,31 +747,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bn-digital/cosmiconfig@npm:^1.0.6":
-  version: 1.0.6
-  resolution: "@bn-digital/cosmiconfig@npm:1.0.6"
+"@bn-digital/cosmiconfig@npm:^1.0.8":
+  version: 1.0.8
+  resolution: "@bn-digital/cosmiconfig@npm:1.0.8"
   dependencies:
     "@bn-digital/commitlint-config": ^2.0.3
-    "@bn-digital/eslint-config": ^2.2.1
+    "@bn-digital/eslint-config": ^2.2.3
     "@bn-digital/graphql-config": ^2.3.2
     "@bn-digital/prettier-config": ^2.3.8
     "@bn-digital/projen": ^0.9.2
     "@bn-digital/stylelint-config": ^2.2.0
     "@bn-digital/typescript-config": ^1.3.3
-    "@types/node": ^18.16.3
+    "@types/node": ^20.0.0
     husky: ^8.0.3
     lint-staged: ^13.2.2
   bin:
     lint: ./bin/lint.js
-  checksum: 53e2cdfaf125e3e4bb9e4647828a96f0ccd3384e9fe888737caac8b9da0efda3b0067b4360dfea2cbd8d220983141b2cce1f03bc8e404fe1eefb278370259720
+  checksum: 0cde75fbd70357f00b21f3025ff86001f3293d468a9e61f86a128b2a9179a0b5c8fc371a93e860c9aa1b5c0d6dab0a8ab6530ac0692007f165b771eac63f0b8b
   languageName: node
   linkType: hard
 
-"@bn-digital/eslint-config@npm:^2.2.1":
-  version: 2.2.2
-  resolution: "@bn-digital/eslint-config@npm:2.2.2"
+"@bn-digital/eslint-config@npm:^2.2.3":
+  version: 2.2.3
+  resolution: "@bn-digital/eslint-config@npm:2.2.3"
   dependencies:
-    "@babel/eslint-parser": ^7.21.3
+    "@babel/eslint-parser": ^7.21.8
     "@eslint/create-config": ^0.4.3
     "@eslint/eslintrc": ^2.0.2
     "@eslint/js": ^8.39.0
@@ -787,11 +787,9 @@ __metadata:
     eslint-plugin-node: ^11.1.0
     eslint-plugin-react: ^7.32.2
     eslint-plugin-react-hooks: ^4.6.0
-    eslint-plugin-react-refresh: ^0.4.0
+    eslint-plugin-react-refresh: ^0.4.1
     eslint-plugin-unicorn: ^46.0.0
-  bin:
-    eslint: ./bin/eslint.js
-  checksum: 54665298d9ed8c6a7a3a958a348c5782db73e663b272a7c65641870626542cd6c1fdfddc65f6c8e4dfe39316fb415e58b1a5a91e6ee30c085e116f2358e81559
+  checksum: ef107859d03aac7c3ce2c868c76bf9c951e519df09fc8c224356f16a798d61166b14a8f2a8a40bdceac427c0178f86e79b784b59e7581152d632331da6ef459d
   languageName: node
   linkType: hard
 
@@ -860,12 +858,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@bn-digital/pulumi@workspace:."
   dependencies:
-    "@bn-digital/cosmiconfig": ^1.0.6
-    "@pulumi/aws": ^5.39.0
+    "@bn-digital/cosmiconfig": ^1.0.8
+    "@pulumi/aws": ^5.40.0
     "@pulumi/digitalocean": ^4.19.1
     "@pulumi/github": ^5.8.0
     "@pulumi/postgresql": ^3.8.0
-    "@pulumi/pulumi": ^3.65.1
+    "@pulumi/pulumi": ^3.66.0
     "@pulumi/tls": ^4.10.0
     "@pulumi/vault": ^5.11.0
     "@pulumiverse/harbor": ^3.8.4
@@ -2642,9 +2640,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pulumi/aws@npm:^5.39.0":
-  version: 5.39.0
-  resolution: "@pulumi/aws@npm:5.39.0"
+"@pulumi/aws@npm:^5.40.0":
+  version: 5.40.0
+  resolution: "@pulumi/aws@npm:5.40.0"
   dependencies:
     "@pulumi/pulumi": ^3.0.0
     aws-sdk: ^2.0.0
@@ -2652,7 +2650,7 @@ __metadata:
     mime: ^2.0.0
     read-package-tree: ^5.2.1
     resolve: ^1.7.1
-  checksum: b0f7213ec4557d1afb12e57a639f92dc14af3041952ad27cb23996da156fd827305b0b841bc9e6d76347096b76e25b7e394e733b5f9d0532c88645c1058cbb18
+  checksum: c117ddec05b11fe8fc303d6a8d50a94ce104185ebc7656fa4aecdde1fc0c7ae3956eddf71e3bd9d1b8db82cd8a14f24577bdc1ee2c27b8b0acb4b7830b3e4bc6
   languageName: node
   linkType: hard
 
@@ -2717,9 +2715,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pulumi/pulumi@npm:^3.65.1":
-  version: 3.65.1
-  resolution: "@pulumi/pulumi@npm:3.65.1"
+"@pulumi/pulumi@npm:^3.66.0":
+  version: 3.66.0
+  resolution: "@pulumi/pulumi@npm:3.66.0"
   dependencies:
     "@grpc/grpc-js": ^1.3.8
     "@logdna/tail-file": ^2.0.6
@@ -2744,7 +2742,7 @@ __metadata:
     ts-node: ^7.0.1
     typescript: ~3.8.3
     upath: ^1.1.0
-  checksum: 7d67a66407b901570dce1e7fc60be980c1d3a46c19eba9992df32cc3ae7fd2fcc52a2fbb48e6b9fd32db6dd9245e3abd2302bcf64ae3b40e4b5dc21c27522d4d
+  checksum: c04e4eabb53de90449eea5510a7c4b8c916e7ffb6378199911b67a670ef777715745d745a17459d2837a8163ec46736e6a03f0de9e00ed1f9423470d961edeb3
   languageName: node
   linkType: hard
 
@@ -2942,7 +2940,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^18.16.3":
+"@types/node@npm:*":
   version: 18.16.3
   resolution: "@types/node@npm:18.16.3"
   checksum: 816b39d45b05ebdc6f362b630970df3f6d82f71d418a2555353522f4eeeb078fa201de5299f02c09a09faa975e43b2745fe19c263d44069f87ddf37d6c37b717
@@ -2953,6 +2951,13 @@ __metadata:
   version: 18.15.5
   resolution: "@types/node@npm:18.15.5"
   checksum: 5fbf3453bd5ce1402bb2964e55d928fc8a8a7de5451b1b0fe66587fecb8a3eb86854ca9cefa5076a5971e2cff00e1773ceeb5d872a54f6c6ddfbbc1064b4e91a
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^20.0.0":
+  version: 20.1.0
+  resolution: "@types/node@npm:20.1.0"
+  checksum: c6d9afa9aa78b4b4348c69ece94975be70346b144c278f1395694a10ef919d7db300018101b6f9245e6bdd76674a5327d2d14829092f3d5295e858cff5f22a66
   languageName: node
   linkType: hard
 
@@ -5469,12 +5474,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react-refresh@npm:^0.4.0":
-  version: 0.4.0
-  resolution: "eslint-plugin-react-refresh@npm:0.4.0"
+"eslint-plugin-react-refresh@npm:^0.4.1":
+  version: 0.4.1
+  resolution: "eslint-plugin-react-refresh@npm:0.4.1"
   peerDependencies:
     eslint: ">=7"
-  checksum: fd8b9f81c469ec2a74afa9404e48ea8f443df54163739b4da9ef9e65ae5f19a523d7a1e70b78f12ddb2a00b40d77f980619f33677e059ad493297ed8d727fc31
+  checksum: 932f982797ef54a87e20039c32739c1a6df8355165d17ba851620b4690632432f511605e20c30e6abdb4c58d2bd926e96347f9253db724dcf3dae92bd1258d1d
   languageName: node
   linkType: hard
 

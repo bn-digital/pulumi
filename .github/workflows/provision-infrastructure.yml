@@ -9,12 +9,6 @@ on:
         required: false
         type: string
 
-env:
-  PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-  PULUMI_BACKEND_URL: s3://bn-digital/pulumi/${{ github.repository }}?endpoint=fra1.digitaloceanspaces.com
-  AWS_ACCESS_KEY_ID: ${{ secrets.SPACES_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
-
 concurrency:
   group: ${{ github.workflow }}-${{ inputs.environment }}
   cancel-in-progress: false
@@ -22,10 +16,19 @@ concurrency:
 jobs:
   pulumi:
     runs-on: self-hosted
-    environment: ${{ inputs.environment }}
+    env:
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      PULUMI_BACKEND_URL: s3://bn-digital/pulumi/${{ github.repository }}?endpoint=fra1.digitaloceanspaces.com
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
+      - name: Configure AWS credentials from Test account
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.SPACES_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Installing dependencies
         run: yarn workspaces focus @${{ github.event.repository.name }}/cloud

@@ -17,18 +17,35 @@ jobs:
   pulumi:
     runs-on: self-hosted
     env:
-      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
       PULUMI_BACKEND_URL: s3://bn-digital/pulumi/${{ github.event.repository.name }}?endpoint=fra1.digitaloceanspaces.com
-      AWS_ACCESS_KEY_ID: ${{ secrets.SPACES_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
-      AWS_REGION: us-east-1
-      VAULT_SERVER_URL: ${{ secrets.VAULT_ENDPOINT }}
-      VAULT_ADDR: ${{ secrets.VAULT_ENDPOINT }}
       VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
       GITHUB_OWNER: ${{ github.repository_owner }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
+      - name: Read from Vault
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ secrets.VAULT_ENDPOINT }}
+          token: ${{ secrets.VAULT_TOKEN }}
+          secrets: |
+            infrastructure/data/pulumi            config-passphrase     | PULUMI_CONFIG_PASSPHRASE    ;
+            infrastructure/data/vault             url                   | VAULT_SERVER_URL            ;
+            infrastructure/data/vault             url                   | VAULT_ADDR                  ;
+            infrastructure/data/vault             pulumi-token          | VAULT_TOKEN                 ;
+            infrastructure/data/registry          endpoint              | HARBOR_URL                  ;
+            infrastructure/data/registry          admin-username        | HARBOR_USERNAME             ;
+            infrastructure/data/registry          admin-password        | HARBOR_PASSWORD             ;
+            infrastructure/data/postgresql        host                  | PGHOST                      ;
+            infrastructure/data/postgresql        username              | PGUSER                      ;
+            infrastructure/data/postgresql        password              | PGPASS                      ;
+            infrastructure/data/postgresql        ssl-mode              | PGSSLMODE                   ;
+            infrastructure/data/digitalocean      token                 | DIGITALOCEAN_TOKEN          ;
+            infrastructure/data/spaces            access-key-id         | AWS_ACCESS_KEY_ID           ;
+            infrastructure/data/spaces            secret-access-key     | AWS_SECRET_ACCESS_KEY       ;
+            infrastructure/data/spaces            access-key-id         | SPACES_ACCESS_KEY_ID        ;
+            infrastructure/data/spaces            secret-access-key     | SPACES_SECRET_ACCESS_KEY    ;
 
       - name: Installing dependencies
         env:

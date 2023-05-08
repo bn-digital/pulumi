@@ -19,6 +19,7 @@ jobs:
     env:
       PULUMI_BACKEND_URL: s3://bn-digital/pulumi/${{ github.event.repository.name }}?endpoint=fra1.digitaloceanspaces.com
       VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+      AWS_REGION: us-east-1
       GITHUB_OWNER: ${{ github.repository_owner }}
     steps:
       - name: Checkout sources

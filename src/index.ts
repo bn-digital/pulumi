@@ -1,7 +1,8 @@
-export * as aws from './aws'
-export * as digitalocean from './digitalocean'
-export * as harbor from './harbor'
-export * as postgresql from './postgresql'
-export  * as ssh from './ssh'
-export  * as vault from './vault'
-export  * as github from './github'
+export * as aws from "./aws"
+export * as digitalocean from "./digitalocean"
+export * as github from "./github"
+export * as harbor from "./harbor"
+export * as postgresql from "./postgresql"
+export * as ssh from "./ssh"
+export * as vault from "./vault"
+export * as pulumi from "./pulumi"

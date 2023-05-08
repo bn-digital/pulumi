@@ -1,10 +1,12 @@
 import { ActionsSecret, ActionsVariable } from "@pulumi/github"
-import { Config, type Output } from "@pulumi/pulumi"
+import { Config } from "@pulumi/pulumi"
+
+import { Tuple } from "./pulumi"
 
 const config = new Config()
 const name = config.name
 
-function createSecret({ key: secretName, value: plaintextValue }: { key: string; value: string | Output<string> }) {
+function createSecret([secretName, plaintextValue]: Tuple) {
   return new ActionsSecret(secretName?.toString().toLowerCase().replace(/_/g, "-"), {
     secretName,
     repository: name,
@@ -12,7 +14,7 @@ function createSecret({ key: secretName, value: plaintextValue }: { key: string;
   })
 }
 
-function createVariable({ key: variableName, value: value }: { key: string; value: string | Output<string> }) {
+function createVariable([variableName, value]: Tuple) {
   return new ActionsVariable(variableName?.toString().toLowerCase().replace(/_/g, "-"), {
     variableName,
     repository: name,

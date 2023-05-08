@@ -34,7 +34,7 @@ jobs:
             infrastructure/data/vault             url                   | VAULT_SERVER_URL            ;
             infrastructure/data/vault             url                   | VAULT_ADDR                  ;
             infrastructure/data/vault             pulumi-token          | VAULT_TOKEN                 ;
-            infrastructure/data/registry          endpoint              | HARBOR_URL                  ;
+            infrastructure/data/registry          base-url              | HARBOR_URL                  ;
             infrastructure/data/registry          admin-username        | HARBOR_USERNAME             ;
             infrastructure/data/registry          admin-password        | HARBOR_PASSWORD             ;
             infrastructure/data/postgresql        host                  | PGHOST                      ;

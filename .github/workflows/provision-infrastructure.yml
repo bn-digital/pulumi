@@ -21,6 +21,7 @@ jobs:
       PULUMI_BACKEND_URL: s3://bn-digital/pulumi/${{ github.event.repository.name }}?endpoint=fra1.digitaloceanspaces.com
       AWS_ACCESS_KEY_ID: ${{ secrets.SPACES_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
+      AWS_REGION: us-east-1
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3

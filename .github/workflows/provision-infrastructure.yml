@@ -39,7 +39,7 @@ jobs:
             infrastructure/data/registry          admin-password        | HARBOR_PASSWORD             ;
             infrastructure/data/postgresql        host                  | PGHOST                      ;
             infrastructure/data/postgresql        username              | PGUSER                      ;
-            infrastructure/data/postgresql        password              | PGPASS                      ;
+            infrastructure/data/postgresql        password              | PGPASSWORD                  ;
             infrastructure/data/postgresql        ssl-mode              | PGSSLMODE                   ;
             infrastructure/data/digitalocean      token                 | DIGITALOCEAN_TOKEN          ;
             infrastructure/data/spaces            access-key-id         | AWS_ACCESS_KEY_ID           ;

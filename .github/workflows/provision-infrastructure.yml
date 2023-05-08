@@ -31,8 +31,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Installing dependencies
-        run: yarn install
-        working-directory: packages/cloud
+        env:
+          YARN_NM_HOISTING_LIMITS: workspaces
+        run: yarn workspaces focus @${{ github.event.repository.name }}/cloud --production
 
       - name: Preview infrastructure plan
         uses: pulumi/actions@v4

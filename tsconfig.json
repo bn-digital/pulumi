@@ -1,18 +1,12 @@
 {
   "extends": "@bn-digital/typescript-config/standard",
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": "src",
     "outDir": "lib",
-    "lib": [
-      "ESNext",
-      "dom"
-    ],
+    "lib": ["ESNext", "dom"],
     "declaration": true,
-    "declarationDir": "types",
-    "ignoreDeprecations": "5.0"
+    "declarationDir": "types"
   },
   "compileOnSave": true,
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

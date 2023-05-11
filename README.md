@@ -15,7 +15,7 @@ To store backend in S3, we need to authenticate first. Use AWS cli to create fak
 > If you don't have `aws` command, install cli with scoop: `scoop install awscli`
 
 ```shell
-aws configure --profile digitaloceans
+aws configure --profile digitalocean
 ```
 You will be prompted with following questions:
 

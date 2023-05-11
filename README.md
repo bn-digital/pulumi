@@ -12,6 +12,8 @@ Pulumi stores metadata about your infrastructure so that it can manage your clou
 
 To store backend in S3, we need to authenticate first. Use AWS cli to create fake profile with S3 credentials from DigitalOcean spaces:
 
+> If you don't have `aws` command, install cli with scoop: `scoop install awscli`
+
 ```shell
 aws configure --profile digitaloceans
 ```

@@ -49,6 +49,7 @@ export interface AppSpec extends Pick<CloudSpec, "domain"> {
     }
   }
   ingress: {
+    host: string
     tls: { enabled: boolean; issuer: { enabled: boolean } }
     proxy: { paths: string; regex: boolean }
   }

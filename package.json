@@ -1,7 +1,7 @@
 {
   "name": "@bn-digital/pulumi",
   "description": "Pulumi IaC modules used by BN Digital for cloud infrastructure provisioning",
-  "version": "1.4.30       3333",
+  "version": "1.4.56",
   "prettier": "@bn-digital/prettier-config",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
@@ -35,11 +35,12 @@
     "@pulumi/github": "^5.9.0",
     "@pulumi/kubernetes": "^3.27.0",
     "@pulumi/postgresql": "^3.8.0",
-    "@pulumi/pulumi": "^3.66.0",
+    "@pulumi/pulumi": "^3.67.0",
     "@pulumi/random": "^4.13.0",
     "@pulumi/tls": "^4.10.0",
     "@pulumi/vault": "^5.11.0",
-    "@pulumiverse/harbor": "^3.8.4"
+    "@pulumiverse/harbor": "^3.8.4",
+    "dotenv": "^16.0.3"
   },
   "devDependencies": {
     "@bn-digital/cosmiconfig": "^1.0.8",

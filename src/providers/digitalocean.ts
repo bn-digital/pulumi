@@ -17,16 +17,17 @@ import {
   type SpacesBucketPolicyArgs,
 } from "@pulumi/digitalocean"
 import { type Output } from "@pulumi/pulumi"
+import { CloudSpec as BaseCloudSpec, ProjectMeta } from "../index"
 import { crudPolicy } from "./s3"
-
-export interface ProductionConfig {
-  domain: string
-  region: string
-}
 
 type DnsRecordString = `${string | "@" | "www"} ${RecordType} ${string}`
 
+type CloudSpec = BaseCloudSpec & {
+  nodePoolName: string
+}
+
 const DEFAULT_REGION = "nyc3" as const
+const DEFAULT_NODE_POOL_NAME = "projects" as const
 
 function createBucketPolicy({ policy, ...args }: SpacesBucketPolicyArgs): SpacesBucketPolicy {
   return new SpacesBucketPolicy(
@@ -39,7 +40,10 @@ function createBucketPolicy({ policy, ...args }: SpacesBucketPolicyArgs): Spaces
 /**
  * Create a DigitalOcean Spaces bucket required for CMS uploads and assets
  */
-function createBucket({ name, region = DEFAULT_REGION }: { name: string; region?: string }): SpacesBucket {
+function createBucket({
+  name,
+  region = DEFAULT_REGION,
+}: Pick<ProjectMeta, "name"> & Pick<CloudSpec, "region">): SpacesBucket {
   const bucket = new SpacesBucket(
     "storage",
     {
@@ -66,21 +70,20 @@ function createDomain({
   name,
   certificate = false,
   recordTemplates = { googleSuiteMail: false, loadBalancerIngress: false },
-}: {
-  name: string
+}: Pick<ProjectMeta, "name"> & {
   recordTemplates?: { googleSuiteMail: boolean; loadBalancerIngress: boolean }
   certificate?: boolean
 }): Domain {
   const domain = new Domain("dns", {
     name,
   })
-  if (recordTemplates.loadBalancerIngress) {
+  if (recordTemplates?.loadBalancerIngress) {
     getLoadBalancerOutput({ name: domain.name }).apply(lb => {
       new DnsRecord(`primary`, { type: RecordType.A, domain: domain.id, name, value: lb.ip })
       new DnsRecord(`alias`, { type: RecordType.CNAME, domain: domain.id, name: `www`, value: `${domain.name}.` })
     })
   }
-  if (recordTemplates.googleSuiteMail) {
+  if (recordTemplates?.googleSuiteMail) {
     new DnsRecord(`primary`, {
       type: RecordType.MX,
       priority: 1,
@@ -105,7 +108,11 @@ function createDomain({
   return domain
 }
 
-function createCluster({ name, region = DEFAULT_REGION }: { name: string; region?: string }): KubernetesCluster {
+function createCluster({
+  name,
+  region = DEFAULT_REGION,
+  nodePoolName = DEFAULT_NODE_POOL_NAME,
+}: Pick<CloudSpec, "region" | "nodePoolName"> & Pick<ProjectMeta, "name">): KubernetesCluster {
   return new KubernetesCluster(
     "cluster",
     {
@@ -113,15 +120,17 @@ function createCluster({ name, region = DEFAULT_REGION }: { name: string; region
       surgeUpgrade: true,
       autoUpgrade: false,
       nodePool: {
-        name: "projects",
+        name: nodePoolName,
         size: DropletSlug.DropletS2VCPU4GB_INTEL,
         minNodes: 1,
         maxNodes: 2,
         autoScale: true,
+        tags: [`project:${name}`],
       },
       version: getKubernetesVersionsOutput().latestVersion,
       name,
       region,
+      tags: [`project:${name}`],
     },
     { retainOnDelete: true, ignoreChanges: ["version", "region"] }
   )
@@ -151,6 +160,8 @@ export {
   createCluster,
   createBucket,
   DEFAULT_REGION,
-  Cluster,
-  DnsRecordString,
+  DEFAULT_NODE_POOL_NAME,
+   Cluster,
+   CloudSpec,
+   DnsRecordString,
 }

@@ -1,6 +1,6 @@
 import { helm, Provider } from "@pulumi/kubernetes"
 import { Output } from "@pulumi/pulumi"
-import { AppMetadata, Deployment } from "./pulumi"
+import { CloudSpec, Deployment, ProjectMeta } from "../index"
 
 enum Releases {
   INGRESS_NGINX = "ingress-nginx@infrastructure",
@@ -30,7 +30,9 @@ const defaultHelmReleaseOptions: Partial<helm.v3.ReleaseArgs> = {
   createNamespace: true,
 }
 
-export interface AppSpec {
+type Release = helm.v3.Release
+
+export interface AppSpec extends Pick<CloudSpec, "domain"> {
   app: {
     name: string
     component: string
@@ -47,7 +49,6 @@ export interface AppSpec {
     }
   }
   ingress: {
-    host: string
     tls: { enabled: boolean; issuer: { enabled: boolean } }
     proxy: { paths: string; regex: boolean }
   }
@@ -70,10 +71,10 @@ export interface AppSpec {
 }
 
 class WebAppDeployment implements Deployment {
-  private readonly metadata: AppMetadata
+  private readonly metadata: ProjectMeta
   private spec: Partial<AppSpec> = {}
 
-  constructor(metadata: AppMetadata) {
+  constructor(metadata: ProjectMeta) {
     this.metadata = metadata
   }
 
@@ -81,15 +82,16 @@ class WebAppDeployment implements Deployment {
     new Provider(this.metadata.environment, { kubeconfig })
   }
 
-  release(spec: AppSpec): helm.v3.Release[] {
+  release(spec: Partial<AppSpec> = {}): Release[] {
     this.spec = spec
     return this.metadata.environment === "production"
       ? [this.ingressController, this.certManager, this.app]
       : [this.app]
   }
 
-  private get ingressController(): helm.v3.Release {
+  private get ingressController(): Release {
     const [name, namespace] = Releases.INGRESS_NGINX.split("@")
+    const { domain = `${this.metadata.name}.bndigital.dev` } = this.spec
     return new helm.v3.Release(name, {
       ...defaultHelmReleaseOptions,
       ...chartMetadata(Charts.INGRESS_NGINX),
@@ -111,7 +113,7 @@ class WebAppDeployment implements Deployment {
           service: {
             omitClusterIP: true,
             annotations: {
-              ["service.beta.kubernetes.io/do-loadbalancer-name"]: this.metadata.domain,
+              ["service.beta.kubernetes.io/do-loadbalancer-name"]: domain,
               ["service.beta.kubernetes.io/do-loadbalancer-protocol"]: "http2",
               ["service.beta.kubernetes.io/do-loadbalancer-http2-port"]: "443",
               ["service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https"]: "true",
@@ -123,7 +125,7 @@ class WebAppDeployment implements Deployment {
     })
   }
 
-  private get certManager(): helm.v3.Release {
+  private get certManager(): Release {
     const [name, namespace] = Releases.CERT_MANAGER.split("@")
 
     return new helm.v3.Release("cert-manager", {
@@ -143,7 +145,8 @@ class WebAppDeployment implements Deployment {
     })
   }
 
-  private get app(): helm.v3.Release {
+  private get app(): Release {
+    const { domain } = this.spec ?? { domain: `${this.metadata.name}.bndigital.dev` }
     const { name, environment: namespace } = this.metadata
     const { app, image, ingress, vcs, database } = this.spec
     return new helm.v3.Release(name, {
@@ -171,7 +174,7 @@ class WebAppDeployment implements Deployment {
           ...image,
         },
         ingress: {
-          host: this.metadata.domain,
+          host: domain,
           tls: {
             enabled: true,
             issuer: { enabled: this.metadata.environment === "production", ...ingress?.tls?.issuer },
@@ -205,4 +208,4 @@ class WebAppDeployment implements Deployment {
   }
 }
 
-export { WebAppDeployment, AppMetadata }
+export { WebAppDeployment, ProjectMeta, Release }

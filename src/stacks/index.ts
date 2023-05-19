@@ -1,46 +1,44 @@
-import { Output } from "@pulumi/pulumi"
-import { CloudAppConfiguration, Deployment, ProjectMeta } from ".."
-import * as digitalocean from "../providers/digitalocean"
+import { Provider } from "@pulumi/kubernetes"
+import { ProjectConfig } from ".."
+import * as providers from "../providers"
+import { Deployable, DeployableTarget, Environment, WebAppCloudEnvironment, WebAppConfiguration } from "../resources"
 
-type CloudProvider = "digitalocean"
-
-interface ContextAware {
-  context: string | Output<string>
+interface InfrastructureConfig extends WebAppConfiguration {
+  nodePoolName?: string
 }
 
-interface Deployable {
-  deploy: <T extends Deployment & ContextAware>(type: new (metadata: ProjectMeta) => T) => T
-}
+abstract class Infrastructure<T extends WebAppConfiguration = InfrastructureConfig>
+  implements WebAppCloudEnvironment<T>
+{
+  readonly environment: Environment<T>
 
-interface CloudEnvironment {
-  env: Deployable
-}
-
-abstract class Infrastructure<T extends CloudProvider> implements CloudAppConfiguration<T>, CloudEnvironment {
-  readonly metadata: CloudAppConfiguration<"digitalocean">["metadata"]
-  readonly spec: CloudAppConfiguration<"digitalocean">["spec"]
-
-  constructor(config: CloudAppConfiguration<"digitalocean">) {
-    this.metadata = config.metadata
-    this.spec = config.spec
+  constructor(config: ProjectConfig<T>) {
+    this.environment = new Environment<T>(config.metadata.name, { project: config })
   }
 
-  public get env() {
-    const cluster = this[this.metadata.environment]
+  public get env(): Deployable<T> {
+    const cluster: providers.digitalocean.Cluster = this[this.environment.project.metadata.environment]
 
-    const deploy = <T extends Deployment & ContextAware>(type: new (metadata: ProjectMeta) => T) => {
-      const deployment = new type(this.metadata)
-      deployment.context = cluster.kubeConfigs[0].rawConfig
+    const deploy = (type: DeployableTarget) => {
+      const deployment = new type(this.environment.project)
+      new Provider(
+        this.environment.project.metadata.environment,
+        {
+          kubeconfig: cluster.kubeConfigs[0].rawConfig,
+          namespace: this.environment.project.metadata.environment,
+        },
+        { ignoreChanges: ["kubeconfig"] }
+      )
       return deployment
     }
 
     return { deploy }
   }
 
-  protected abstract get production(): digitalocean.Cluster
+  protected abstract get production(): providers.digitalocean.Cluster
 
-  protected abstract get staging(): digitalocean.Cluster
+  protected abstract get staging(): providers.digitalocean.Cluster
 }
 
 export * as digitalocean from "./digitalocean"
-export { Infrastructure, ContextAware, CloudProvider }
+export { Infrastructure, InfrastructureConfig }

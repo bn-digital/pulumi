@@ -1,8 +1,11 @@
 {
   "name": "@bn-digital/pulumi",
   "description": "Pulumi IaC modules used by BN Digital for cloud infrastructure provisioning",
-  "version": "1.4.57",
+  "version": "1.7.50",
   "prettier": "@bn-digital/prettier-config",
+  "eslintConfig": {
+    "extends": "@bn-digital/eslint-config"
+  },
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "files": [
@@ -15,37 +18,48 @@
   },
   "scripts": {
     "build": "tsc -p .",
-    "publish": "yarn build && yarn npm publish"
+    "test": "jest tests",
+    "lint": "npx lint ts --fix",
+    "publish": "yarn lint && yarn build && yarn test && yarn npm publish"
   },
   "typings": "types/index.d.ts",
+  "jest": {
+    "preset": "ts-jest"
+  },
   "bundledDependencies": [
     "@pulumi/pulumi",
     "@pulumi/digitalocean",
     "@pulumi/aws",
+    "@pulumi/docker",
     "@pulumi/github",
     "@pulumi/postgresql",
     "@pulumi/random",
     "@pulumi/tls",
+    "@pulumi/policy",
     "@pulumi/vault",
     "@pulumiverse/harbor"
   ],
   "dependencies": {
-    "@pulumi/aws": "^5.40.0",
-    "@pulumi/digitalocean": "^4.19.1",
-    "@pulumi/github": "^5.9.0",
-    "@pulumi/kubernetes": "^3.27.0",
-    "@pulumi/postgresql": "^3.8.0",
-    "@pulumi/pulumi": "^3.67.0",
-    "@pulumi/random": "^4.13.0",
-    "@pulumi/tls": "^4.10.0",
-    "@pulumi/vault": "^5.11.0",
-    "@pulumiverse/harbor": "^3.8.4",
-    "dotenv": "^16.0.3"
+    "@pulumi/aws": "~5.41.0",
+    "@pulumi/digitalocean": "~4.19.1",
+    "@pulumi/docker": "~4.2.0",
+    "@pulumi/github": "~5.9.0",
+    "@pulumi/kubernetes": "~3.27.1",
+    "@pulumi/policy": "~1.5.0",
+    "@pulumi/postgresql": "~3.8.0",
+    "@pulumi/pulumi": "~3.67.1",
+    "@pulumi/random": "~4.13.1",
+    "@pulumi/tls": "~4.10.0",
+    "@pulumi/vault": "~5.11.0",
+    "@pulumiverse/harbor": "~3.8.4",
+    "@types/jest": "~29.5.1",
+    "dotenv": "~16.0.3"
   },
   "devDependencies": {
-    "@bn-digital/cosmiconfig": "^1.0.8",
-    "@pulumi/policy": "^1.5.0",
-    "typescript": "^5.0.4"
+    "@bn-digital/cosmiconfig": "~1.0.13",
+    "jest": "~29.5.0",
+    "ts-jest": "~29.1.0",
+    "typescript": "~5.0.4"
   },
   "packageManager": "yarn@3.5.1"
 }

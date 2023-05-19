@@ -3,49 +3,43 @@ import {
   DnsRecord,
   Domain,
   DropletSlug,
-  KubernetesCluster,
-  Project,
-  RecordType,
-  SpacesBucket,
-  SpacesBucketPolicy,
   getKubernetesClusterOutput,
   getKubernetesVersionsOutput,
   getLoadBalancerOutput,
-  type GetKubernetesClusterResult,
-  type ProjectArgs,
-  type SpacesBucketArgs,
-  type SpacesBucketPolicyArgs,
+  KubernetesCluster,
+  Project,
+  RecordType,
+  Region,
+  SpacesBucket,
+  SpacesBucketPolicy,
 } from "@pulumi/digitalocean"
-import { type Output } from "@pulumi/pulumi"
-import { CloudSpec as BaseCloudSpec, ProjectMeta } from "../index"
+import { output, type Output } from "@pulumi/pulumi"
+import { ProjectArgs, ResourceOptions } from "../index"
 import { crudPolicy } from "./s3"
-
-type DnsRecordString = `${string | "@" | "www"} ${RecordType} ${string}`
-
-type CloudSpec = BaseCloudSpec & {
-  nodePoolName: string
-}
 
 const DEFAULT_REGION = "nyc3" as const
 const DEFAULT_NODE_POOL_NAME = "projects" as const
 
-function createBucketPolicy({ policy, ...args }: SpacesBucketPolicyArgs): SpacesBucketPolicy {
+function createBucketPolicy(
+  { policy, bucket, region }: ConstructorParameters<typeof SpacesBucketPolicy>[1],
+  args?: ResourceOptions
+): SpacesBucketPolicy {
   return new SpacesBucketPolicy(
-    [args.bucket, "crud"].join("-"),
-    { policy, ...args },
-    { ignoreChanges: ["region"] as (keyof SpacesBucketPolicyArgs)[] }
+    [bucket, "crud"].join("-"),
+    { policy, bucket, region },
+    { ignoreChanges: ["region"], ...args }
   )
 }
 
 /**
  * Create a DigitalOcean Spaces bucket required for CMS uploads and assets
  */
-function createBucket({
-  name,
-  region = DEFAULT_REGION,
-}: Pick<ProjectMeta, "name"> & Pick<CloudSpec, "region">): SpacesBucket {
+function createBucket(
+  { name, region = DEFAULT_REGION }: { name: string; region?: Region },
+  args?: ResourceOptions
+): SpacesBucket {
   const bucket = new SpacesBucket(
-    "storage",
+    name,
     {
       acl: "public-read",
       name: `${name}-cms`,
@@ -53,68 +47,97 @@ function createBucket({
       forceDestroy: true,
       region,
     },
-    { ignoreChanges: ["region"] as (keyof SpacesBucketArgs)[] }
+    { ignoreChanges: ["region"], ...args }
   )
   bucket.name.apply(name => {
-    createBucketPolicy({
-      policy: JSON.stringify(crudPolicy(name)),
-      bucket: name,
-      region,
-    })
+    createBucketPolicy(
+      {
+        policy: JSON.stringify(crudPolicy(name)),
+        bucket: name,
+        region,
+      },
+      { parent: bucket }
+    )
   })
-
+  output(bucket).apply(it => it.name)
   return bucket
 }
 
-function createDomain({
-  name,
-  certificate = false,
-  recordTemplates = { googleSuiteMail: false, loadBalancerIngress: false },
-}: Pick<ProjectMeta, "name"> & {
-  recordTemplates?: { googleSuiteMail: boolean; loadBalancerIngress: boolean }
-  certificate?: boolean
-}): Domain {
-  const domain = new Domain("dns", {
-    name,
-  })
-  if (recordTemplates?.loadBalancerIngress) {
-    getLoadBalancerOutput({ name: domain.name }).apply(lb => {
-      new DnsRecord(`primary`, { type: RecordType.A, domain: domain.id, name, value: lb.ip })
-      new DnsRecord(`alias`, { type: RecordType.CNAME, domain: domain.id, name: `www`, value: `${domain.name}.` })
-    })
-  }
-  if (recordTemplates?.googleSuiteMail) {
-    new DnsRecord(`primary`, {
+function createDnsMxRecords(domain: Domain, args: ResourceOptions) {
+  new DnsRecord(
+    `google-mx-0`,
+    {
       type: RecordType.MX,
       priority: 1,
       domain: domain.id,
-      name,
+      name: domain.name,
       value: "aspmx.l.google.com.",
-    })
+    },
+    args
+  )
 
-    Array.from([1, 2, 3, 4]).forEach(priority => {
-      new DnsRecord(`backup-${priority}`, {
+  Array.from([1, 2, 3, 4]).forEach(priority => {
+    new DnsRecord(
+      `fallback-google-mx-${priority}`,
+      {
         type: RecordType.MX,
         priority,
         domain: domain.id,
-        name,
+        name: domain.name,
         value: `alt${priority}.aspmx.l.google.com.`,
-      })
-    })
-  }
-  if (certificate) {
-    new Certificate(name, { domains: [name, `www.${name}`], type: "lets_encrypt" })
-  }
-  return domain
+      },
+      args
+    )
+  })
 }
 
-function createCluster({
-  name,
-  region = DEFAULT_REGION,
-  nodePoolName = DEFAULT_NODE_POOL_NAME,
-}: Pick<CloudSpec, "region" | "nodePoolName"> & Pick<ProjectMeta, "name">): KubernetesCluster {
-  return new KubernetesCluster(
-    "cluster",
+function createDnsARecords(domain: Domain, args: ResourceOptions) {
+  getLoadBalancerOutput({ name: domain.name }).apply(lb => {
+    new DnsRecord(`a-primary`, { type: RecordType.A, domain: domain.id, name: domain.name, value: lb.ip }, args)
+    new DnsRecord(
+      `cname-www-primary`,
+      { type: RecordType.CNAME, domain: domain.id, name: `www`, value: `${domain.name}.` },
+      args
+    )
+  })
+}
+
+function createDomain(
+  {
+    name,
+    domain,
+    certificate = false,
+    recordTemplates = { googleSuiteMail: false, loadBalancerIngress: false },
+  }: {
+    name: string
+    domain: string
+    recordTemplates?: { googleSuiteMail: boolean; loadBalancerIngress: boolean }
+    certificate?: boolean
+  },
+  args?: ResourceOptions
+): Domain {
+  const dns = new Domain(name, { name: domain }, args)
+  const childArgs = { parent: dns, deletedWith: dns }
+  recordTemplates?.loadBalancerIngress && createDnsARecords(dns, childArgs)
+  recordTemplates?.googleSuiteMail && createDnsMxRecords(dns, childArgs)
+  certificate && new Certificate(name, { domains: [name, `www.${name}`], type: "lets_encrypt" }, childArgs)
+  return dns
+}
+
+function createCluster(
+  {
+    name,
+    region = DEFAULT_REGION,
+    nodePoolName = DEFAULT_NODE_POOL_NAME,
+  }: {
+    name: string
+    region?: Region
+    nodePoolName?: string
+  },
+  args?: ConstructorParameters<typeof KubernetesCluster>[2]
+): KubernetesCluster {
+  const cluster = new KubernetesCluster(
+    name,
     {
       ha: false,
       surgeUpgrade: true,
@@ -132,26 +155,43 @@ function createCluster({
       region,
       tags: [`project:${name}`],
     },
-    { retainOnDelete: true, ignoreChanges: ["version", "region"] }
+    { retainOnDelete: true, ignoreChanges: ["version", "region"], ...args }
+  )
+  output(cluster).apply(it => it.name)
+  return cluster
+}
+
+function createProject(
+  {
+    name,
+    environment,
+    resources,
+  }: ConstructorParameters<typeof Project>[1] & Pick<ProjectArgs, "name" | "environment">,
+  args?: ConstructorParameters<typeof Project>[2]
+): Project {
+  return new Project(
+    name,
+    {
+      environment,
+      name,
+      isDefault: false,
+      purpose: "Web Application",
+      resources,
+    },
+    args
   )
 }
 
-function createProject({ name, resources, ...args }: Pick<ProjectArgs, "name" | "environment" | "resources">): Project {
-  return new Project("project", {
-    environment: "Production",
-    name,
-    isDefault: false,
-    purpose: "Web Application",
-    resources,
-    ...args,
-  })
-}
-
-function getCluster({ name }: { name: string }): Output<GetKubernetesClusterResult> {
+function getCluster(name: string): Cluster {
   return getKubernetesClusterOutput({ name })
 }
 
-type Cluster = Output<GetKubernetesClusterResult> | KubernetesCluster
+type Cluster<
+  T extends Pick<ReturnType<typeof getKubernetesClusterOutput>, "kubeConfigs"> = Pick<
+    ReturnType<typeof getKubernetesClusterOutput>,
+    "kubeConfigs"
+  >
+> = Output<T> | T
 
 export {
   createProject,
@@ -161,7 +201,5 @@ export {
   createBucket,
   DEFAULT_REGION,
   DEFAULT_NODE_POOL_NAME,
-   Cluster,
-   CloudSpec,
-   DnsRecordString,
+  Cluster,
 }

@@ -1,8 +1,8 @@
 import { ec2, ecr, s3 } from "@pulumi/aws"
 import { Config, getStack } from "@pulumi/pulumi"
 import * as path from "path"
+import { generators } from "../services"
 import { crudPolicy } from "./s3"
-import { generateSshKey } from "./ssh"
 
 const config = new Config()
 const name = config.name
@@ -33,7 +33,7 @@ async function getUbuntuLatestAmi(): Promise<ec2.GetAmiResult> {
 }
 
 function createSshKey() {
-  const key = generateSshKey(path.join(process.cwd(), ".secrets"))
+  const key = generators.sshKey(path.join(process.cwd(), ".secrets"))
   return new ec2.KeyPair("pulumi", {
     keyName: name,
     publicKey: key.publicKeyOpenssh,

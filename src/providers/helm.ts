@@ -1,6 +1,8 @@
-import { helm, Provider } from "@pulumi/kubernetes"
-import { Output } from "@pulumi/pulumi"
-import { CloudSpec, Deployment, ProjectMeta } from "../index"
+import { helm, yaml } from "@pulumi/kubernetes"
+import { Deployment, ProjectArgs, ProjectConfig, providers } from ".."
+import { InfrastructureConfig } from "../stacks"
+import { RegistryConfig } from "./harbor"
+import { DatabaseConfig } from "./postgresql"
 
 enum Releases {
   INGRESS_NGINX = "ingress-nginx@infrastructure",
@@ -32,67 +34,79 @@ const defaultHelmReleaseOptions: Partial<helm.v3.ReleaseArgs> = {
 
 type Release = helm.v3.Release
 
-export interface AppSpec extends Pick<CloudSpec, "domain"> {
-  app: {
-    name: string
-    component: string
-    environment: string
+export type AppConfig = {
+  image?: {
+    registry?: RegistryConfig
+    repository?: string
   }
-  image: {
-    pullPolicy: "Always" | "IfNotPresent" | "Never"
-    repository: string
-    tag: string
-    registry: {
-      url: string
-      username: string
-      password: string
+  vcs?: {
+    repository?: string
+    ref?: string
+    commit?: string
+  }
+  database?: {
+    enabled?: boolean
+    auth?: DatabaseConfig & {
+      postgresPassword?: string
     }
+    volumeSizeGb?: number
   }
-  ingress: {
-    host: string
-    tls: { enabled: boolean; issuer: { enabled: boolean } }
-    proxy: { paths: string; regex: boolean }
-  }
-  vcs: {
-    repository: string
-    ref: string
-    commit: string
-  }
-  database: {
-    enabled: boolean
-    auth: {
-      password: string
-      postgresPassword: string
-      username: string
-      database: string
+  env?: NodeJS.ProcessEnv
+}
+
+type PriorityClass = "system-cluster-critical" | "system-node-critical"
+
+type IngressControllerConfig = {
+  defaultBackend: { enabled: boolean }
+  controller: {
+    priorityClassName: PriorityClass
+    ingressClassResource: {
+      default: boolean
     }
-    persistence: { size: string }
-    volumePermissions: { enabled: boolean }
+    config: { [key: string]: string | boolean | number }
+    service: {
+      omitClusterIP: boolean
+      annotations: { [key: string]: string }
+    }
   }
 }
 
+type WebAppConfig = InfrastructureConfig & AppConfig
+
+const INGRESS_CLASS_NAME = "nginx" as const
+const TLS_ISSUER_NAME = "letsencrypt" as const
+const TLS_ISSUER_KIND = "ClusterIssuer" as const
+
 class WebAppDeployment implements Deployment {
-  private readonly metadata: ProjectMeta
-  private spec: Partial<AppSpec> = {}
+  private readonly config: ProjectConfig<WebAppConfig>
 
-  constructor(metadata: ProjectMeta) {
-    this.metadata = metadata
+  constructor(config: ProjectConfig<WebAppConfig>) {
+    this.config = {
+      ...config,
+      spec: {
+        ...config.spec,
+        database: {
+          ...config.spec.database,
+          auth: {
+            password: process.env.DATABASE_ROOT_PASSWORD,
+            postgresPassword: process.env.DATABASE_ROOT_PASSWORD,
+            username: process.env.DATABASE_USERNAME ?? config.metadata.name,
+            database: process.env.DATABASE_NAME ?? config.metadata.name,
+            host: process.env.DATABASE_HOST ?? [config.metadata.name, "database"].join("-"),
+            port: process.env.DATABASE_PORT ?? 5432,
+            ...config.spec.database?.auth,
+          },
+        },
+      },
+    }
   }
 
-  set context(kubeconfig: Output<string> | string) {
-    new Provider(this.metadata.environment, { kubeconfig })
-  }
-
-  release(spec: Partial<AppSpec> = {}): Release[] {
-    this.spec = spec
-    return this.metadata.environment === "production"
-      ? [this.ingressController, this.certManager, this.app]
-      : [this.app]
+  private get domain(): string {
+    return this.config.spec.domain ?? `${this.config.metadata.name}.bndigital.dev`
   }
 
   private get ingressController(): Release {
     const [name, namespace] = Releases.INGRESS_NGINX.split("@")
-    const { domain = `${this.metadata.name}.bndigital.dev` } = this.spec
     return new helm.v3.Release(name, {
       ...defaultHelmReleaseOptions,
       ...chartMetadata(Charts.INGRESS_NGINX),
@@ -103,6 +117,7 @@ class WebAppDeployment implements Deployment {
         controller: {
           priorityClassName: "system-cluster-critical",
           ingressClassResource: {
+            name: INGRESS_CLASS_NAME,
             default: true,
           },
           config: {
@@ -114,7 +129,7 @@ class WebAppDeployment implements Deployment {
           service: {
             omitClusterIP: true,
             annotations: {
-              ["service.beta.kubernetes.io/do-loadbalancer-name"]: domain,
+              ["service.beta.kubernetes.io/do-loadbalancer-name"]: this.domain,
               ["service.beta.kubernetes.io/do-loadbalancer-protocol"]: "http2",
               ["service.beta.kubernetes.io/do-loadbalancer-http2-port"]: "443",
               ["service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https"]: "true",
@@ -122,21 +137,25 @@ class WebAppDeployment implements Deployment {
             },
           },
         },
-      },
+      } as IngressControllerConfig,
     })
   }
 
   private get certManager(): Release {
     const [name, namespace] = Releases.CERT_MANAGER.split("@")
 
-    return new helm.v3.Release("cert-manager", {
+    const release = new helm.v3.Release("cert-manager", {
       ...defaultHelmReleaseOptions,
       ...chartMetadata(Charts.CERT_MANAGER),
       name,
       namespace,
       values: {
         installCRDs: true,
-        global: { priorityClassName: "system-cluster-critical" },
+        global: { priorityClassName: "system-cluster-critical" as PriorityClass },
+        ingressShim: {
+          defaultIssuerName: TLS_ISSUER_NAME,
+          defaultIssuerKind: TLS_ISSUER_KIND,
+        },
         metrics: {
           prometheus: {
             enabled: false,
@@ -144,12 +163,38 @@ class WebAppDeployment implements Deployment {
         },
       },
     })
+    new yaml.ConfigGroup(
+      [this.config.metadata.name, "tls-issuer"].join("-"),
+      {
+        objs: {
+          apiVersion: "cert-manager.io/v1",
+          kind: TLS_ISSUER_KIND,
+          metadata: {
+            name: TLS_ISSUER_NAME,
+          },
+          spec: {
+            acme: {
+              privateKeySecretRef: { name: [TLS_ISSUER_NAME, TLS_ISSUER_NAME].join("-") },
+              server: "https://acme-v02.api.letsencrypt.org",
+              email: `admin@${this.config.spec.domain}`,
+              solvers: [{ http01: { ingress: { name: INGRESS_CLASS_NAME } } }],
+            },
+          },
+        },
+      },
+      { dependsOn: [release], parent: release, deletedWith: release }
+    )
+
+    return release
   }
 
   private get app(): Release {
-    const { domain } = this.spec ?? { domain: `${this.metadata.name}.bndigital.dev` }
-    const { name, environment: namespace } = this.metadata
-    const { app, image, ingress, vcs, database } = this.spec
+    const { spec, metadata } = this.config
+    const { name, environment: namespace } = metadata
+    const { env, vcs, database } = spec
+    const registrySecret = providers.vault.getSecret<RegistryConfig>(`projects/${name}/${namespace}/registry`)
+    const databaseSecret = providers.vault.getSecret<DatabaseConfig>(`projects/${name}/${namespace}/database`)
+
     return new helm.v3.Release(name, {
       ...defaultHelmReleaseOptions,
       ...chartMetadata(Charts.NODEJS),
@@ -157,56 +202,49 @@ class WebAppDeployment implements Deployment {
       name,
       values: {
         app: {
-          name: this.metadata.name,
+          name: metadata.name,
           component: "app",
-          environment: this.metadata.environment,
-          ...app,
+          environment: metadata.environment,
         },
         image: {
           pullPolicy: "Always",
           repository: `app`,
-          tag: this.metadata.version,
-          registry: {
-            url: `dcr.bndigital.dev/${this.metadata.name}`,
-            username: process.env.DOCKER_USERNAME,
-            password: process.env.DOCKER_PASSWORD,
-            ...image?.registry,
-          },
-          ...image,
+          tag: metadata.version,
+          registry: registrySecret,
         },
         ingress: {
-          host: domain,
-          tls: {
-            enabled: true,
-            issuer: { enabled: this.metadata.environment === "production", ...ingress?.tls?.issuer },
-            ...ingress?.tls,
-          },
+          host: this.domain,
+          tls: { enabled: true },
           proxy: { paths: "", regex: false },
-          ...ingress,
         },
         vcs: {
-          repository: `https://github.com/bn-digital/${this.metadata.name}`,
+          repository: `https://github.com/bn-digital/${metadata.name}`,
           ref: process.env.GITHUB_REF_NAME,
           commit: process.env.GITHUB_SHA,
           ...vcs,
         },
+        env,
         database: {
-          enabled: this.metadata.environment === "production",
-          auth: {
-            password: process.env.DATABASE_ROOT_PASSWORD,
-            postgresPassword: process.env.DATABASE_ROOT_PASSWORD,
-            username: this.metadata.name,
-            database: this.metadata.name,
-            ...database?.auth,
-          },
-          primary: { priorityClassName: "system-node-critical" },
-          persistence: { size: "2Gi" },
-          volumePermissions: { enabled: true },
           ...database,
+          enabled: metadata.environment === "production",
+          auth: databaseSecret.apply(it => it as DatabaseConfig),
+          primary: { priorityClassName: "system-node-critical" as PriorityClass },
+          persistence: { size: `${spec.database?.volumeSizeGb ?? 2}Gi` },
+          volumePermissions: { enabled: true },
+        },
+        nodeSelector: {
+          [`doks.digitalocean.com/node-pool`]: spec.nodePoolName,
         },
       },
     })
   }
+
+  release(spec: Partial<AppConfig> = {}): Release[] {
+    this.config.spec = { ...this.config.spec, ...spec }
+    return this.config.metadata.environment === "production"
+      ? [this.ingressController, this.certManager, this.app]
+      : [this.app]
+  }
 }
 
-export { WebAppDeployment, ProjectMeta, Release }
+export { WebAppDeployment, ProjectArgs, Release }

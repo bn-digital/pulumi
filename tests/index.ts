@@ -1,7 +1,7 @@
 import { KubernetesCluster, getVpcOutput } from "@pulumi/digitalocean"
 import { PolicyPack, StackValidationPolicy } from "@pulumi/policy"
 import { runtime } from "@pulumi/pulumi"
-e
+
 const stackPolicy: StackValidationPolicy = {
   name: "test",
   description: "DO integration tests.",
@@ -13,7 +13,7 @@ const stackPolicy: StackValidationPolicy = {
       return
     }
 
-    const cluster = clusterResources[0].asType(KubernetesCluster)!
+    const cluster = clusterResources[0].asType(KubernetesCluster)
     if (cluster.version.match(/(1.2)[5-9].*/)) {
       reportViolation(`Expected K8s cluster '${cluster.name}' version to be '1.25+' but found '${cluster.version}'`)
     }

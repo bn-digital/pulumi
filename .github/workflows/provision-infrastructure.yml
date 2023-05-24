@@ -58,6 +58,7 @@ jobs:
       - name: Preview infrastructure plan
         uses: pulumi/actions@v4
         with:
-          command: preview
+          command: up
           work-dir: packages/cloud
           stack-name: ${{ inputs.environment }}
+          policy-pack: tests

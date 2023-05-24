@@ -22,6 +22,11 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+        
+      - name: Setup NodeJKS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
       - name: Read from Vault
         uses: hashicorp/vault-action@v2.5.0

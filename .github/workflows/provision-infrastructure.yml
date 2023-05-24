@@ -1,5 +1,3 @@
-name: Provision infrastructure
-
 on:
   workflow_call:
     inputs:
@@ -49,9 +47,8 @@ jobs:
             infrastructure/data/spaces            secret-access-key     | SPACES_SECRET_ACCESS_KEY    ;
 
       - name: Installing dependencies
-        env:
-          YARN_NM_HOISTING_LIMITS: workspaces
-        run: yarn workspaces focus @${{ github.event.repository.name }}/cloud --production
+        working-directory: packages/cloud
+        run: npm ci
 
       - name: Preview infrastructure plan
         uses: pulumi/actions@v4
